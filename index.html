@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Agenda da Turma</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230F1722'/%3E%3Crect x='6' y='9' width='20' height='17' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M6 14h20M11 6v5M21 6v5' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root {
+  /* Layout: quadro de horários. Título do mês em fonte condensada e enorme, grade sóbria, cor só para o tipo de compromisso. */
+  --bg: #EDF0F4;
+  --surface: #FFFFFF;
+  --surface-2: #E3E8EE;
+  --ink: #0F1722;
+  --ink-2: #465163;
+  --line: #CCD4DE;
+  --aula: #2457D6;
+  --prova: #D1381F;
+  --entrega: #B87708;
+  --evento: #0E8068;
+  --ok: #0E8068;
+  --bad: #D1381F;
+  --on-bad: #FFFFFF;
+  --font-display: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0B1118;
+    --surface: #131B25;
+    --surface-2: #0F161E;
+    --ink: #E8EEF5;
+    --ink-2: #9AA7B8;
+    --line: #243040;
+    --aula: #7BA2FF;
+    --prova: #FF8672;
+    --entrega: #F0B24A;
+    --evento: #4CC9A8;
+    --ok: #4CC9A8;
+    --bad: #FF8672;
+    --on-bad: #0B1118;
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 var(--font-body);
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+
+.shell { max-width: 1240px; margin-inline: auto; }
+.app { display: flex; flex-direction: column; gap: 18px; }
+
+.k-aula { --k: var(--aula); }
+.k-prova { --k: var(--prova); }
+.k-entrega { --k: var(--entrega); }
+.k-evento { --k: var(--evento); }
+
+.lbl { font: 600 11px/1.2 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+.meta { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+
+/* Topo */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { font: 600 12px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.top-r { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sync { font: 12px/1.3 var(--font-mono); color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-2); flex: none; }
+.sync.ok::before { background: var(--ok); }
+.sync.slow::before, .sync.error::before { background: var(--bad); }
+.who { font: 12px/1.3 var(--font-mono); color: var(--ink-2); overflow-wrap: anywhere; }
+.badge { font: 600 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; padding: 5px 8px; border: 1px solid var(--ink); border-radius: 3px; }
+.badge.edit { background: var(--ink); color: var(--bg); }
+
+/* Em breve */
+.soon { border-top: 2px solid var(--ink); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.soon-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.soon-item { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.soon-item:hover { border-color: var(--ink); }
+.soon-item .k { font: 600 11px/1.2 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.soon-item .tt { font-weight: 700; overflow-wrap: anywhere; }
+.soon-item .when { font: 12px/1.3 var(--font-mono); color: var(--ink-2); }
+.empty-t { font: 700 20px/1.2 var(--font-display); }
+.kind::before, .soon-item .k::before, .fchip::before, .kopt span::before {
+  content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--k); flex: none;
+}
+
+/* Título e navegação */
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.title { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; font-family: var(--font-display); }
+.title .m { font-size: clamp(40px, 9.5vw, 88px); font-weight: 800; font-stretch: 62%; line-height: .88; text-transform: uppercase; }
+.title .y { font: 500 clamp(16px, 2.4vw, 22px)/1 var(--font-mono); color: var(--ink-2); }
+.nav { display: flex; gap: 6px; }
+.btn { border: 1px solid var(--ink); background: transparent; border-radius: 3px; padding: 8px 14px; font-weight: 600; min-height: 40px; }
+.btn:hover { background: var(--surface-2); }
+.btn.pri { background: var(--ink); color: var(--bg); }
+.btn.pri:hover { opacity: .9; }
+.btn.sm { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+.btn.dng { border-color: var(--bad); color: var(--bad); margin-right: auto; }
+.btn.dng.arm { background: var(--bad); color: var(--on-bad); }
+.btn[disabled] { opacity: .55; cursor: default; }
+
+/* Ferramentas */
+.tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--ink); border-radius: 3px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 8px 14px; font-weight: 600; min-height: 38px; }
+.seg button + button { border-left: 1px solid var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.fchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ink); background: var(--surface); border-radius: 3px; padding: 6px 10px; font-size: 13px; font-weight: 600; min-height: 34px; }
+.fchip[aria-pressed="false"] { border-color: var(--line); background: transparent; color: var(--ink-2); }
+.fchip[aria-pressed="false"]::before { opacity: .35; }
+.search { flex: 1 1 160px; max-width: 260px; min-width: 0; }
+.grow { margin-left: auto; }
+input, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 9px 10px; min-height: 40px; width: 100%; min-width: 0; font-size: 16px; }
+input:focus, textarea:focus { border-color: var(--ink); }
+input[type="checkbox"] { width: 18px; min-height: 18px; height: 18px; padding: 0; accent-color: var(--ink); }
+
+/* Layout principal */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
+.layout.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
+.view { min-width: 0; }
+
+/* Mês */
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.dow { background: var(--surface-2); padding: 6px 8px; font: 600 11px/1 var(--font-mono); letter-spacing: .1em; color: var(--ink-2); }
+.day { background: var(--surface); border: 0; text-align: left; min-height: 108px; padding: 6px; display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow: hidden; }
+.day:hover { background: var(--bg); }
+.day.out { background: var(--surface-2); color: var(--ink-2); }
+.day.sel { outline: 2px solid var(--ink); outline-offset: -2px; }
+.day .num { font: 500 12px/1 var(--font-mono); align-self: flex-start; padding: 3px 0; }
+.day.today .num { background: var(--ink); color: var(--bg); border-radius: 999px; padding: 3px 7px; }
+.chip { display: flex; align-items: center; gap: 5px; font-size: 11.5px; line-height: 1.25; padding: 2px 5px; border-radius: 3px; min-width: 0; white-space: nowrap; overflow: hidden; background: color-mix(in srgb, var(--k) 16%, var(--surface)); color: var(--ink); }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: var(--k); flex: none; }
+.chip .t { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-2); flex: none; }
+.chip .x { overflow: hidden; text-overflow: ellipsis; }
+.chip.off .x { text-decoration: line-through; opacity: .7; }
+.more { font: 500 11px/1 var(--font-mono); color: var(--ink-2); padding: 2px 5px; }
+.dots { display: none; flex-wrap: wrap; gap: 3px; }
+.dot { width: 7px; height: 7px; border-radius: 2px; background: var(--k); }
+.dot.off { opacity: .35; }
+
+/* Painel do dia */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.ph { display: flex; align-items: center; gap: 12px; }
+.pn { font: 800 56px/.9 var(--font-display); font-stretch: 62%; }
+.pw { font-weight: 700; text-transform: capitalize; }
+.pm { font-size: 13px; color: var(--ink-2); }
+.hoje { margin-left: auto; font: 600 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; background: var(--ink); color: var(--bg); padding: 5px 8px; border-radius: 3px; }
+.panel .card { background: var(--bg); }
+
+/* Cartões */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kind { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1.2 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.time { font: 500 12px/1.2 var(--font-mono); color: var(--ink-2); margin-left: auto; }
+.ttl { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.card .meta, .card .rec { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+.card .note { font-size: 13px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.flag { background: var(--bad); color: var(--on-bad); font: 600 10px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; padding: 3px 6px; border-radius: 2px; }
+.card.off .ttl { text-decoration: line-through; color: var(--ink-2); }
+.acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+body.busy .acts button { pointer-events: none; opacity: .5; }
+
+/* Semana */
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.wcol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wcol > header { display: flex; align-items: baseline; gap: 8px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
+.wd { font: 600 11px/1 var(--font-mono); letter-spacing: .1em; color: var(--ink-2); }
+.wn { font: 800 28px/1 var(--font-display); font-stretch: 62%; }
+.wcol.today .wn { background: var(--ink); color: var(--bg); padding: 2px 7px; border-radius: 3px; }
+.none { color: var(--ink-2); font-size: 13px; }
+
+/* Lista */
+.list { display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
+.dayrow { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.dn { font: 800 40px/.9 var(--font-display); font-stretch: 62%; }
+.dayrow.today .dn { text-decoration: underline; text-decoration-thickness: 4px; text-underline-offset: 6px; }
+.dw { font: 600 11px/1.3 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); margin-top: 6px; }
+.stack { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.blank { padding: 28px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--ink-2); }
+
+/* Telas de acesso */
+.gate { max-width: 460px; margin: 10vh auto 0; display: flex; flex-direction: column; gap: 12px; }
+.gate-t { font: 800 clamp(36px, 8vw, 64px)/.95 var(--font-display); font-stretch: 62%; text-transform: uppercase; }
+.gform { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.info { color: var(--ink-2); font-size: 13px; }
+code { font: 500 13px var(--font-mono); background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+
+/* Formulário */
+.overlay { position: fixed; inset: 0; z-index: 20; display: flex; overflow-y: auto; background: color-mix(in srgb, var(--ink) 55%, transparent);
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-left, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+.sheet { background: var(--surface); border: 1px solid var(--ink); border-radius: 4px; width: 100%; max-width: 540px; padding: 18px; margin: auto; display: flex; flex-direction: column; gap: 14px; }
+.m-title { font: 800 30px/1 var(--font-display); font-stretch: 62%; text-transform: uppercase; }
+.form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.form .full { grid-column: 1 / -1; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld > span { font: 600 11px/1.2 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.tri { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kinds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+.kopt { position: relative; min-width: 0; }
+.kopt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.kopt span { display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); border-radius: 3px; padding: 9px 4px; font-weight: 600; font-size: 14px; min-height: 40px; }
+.kopt input:checked + span { border-color: var(--ink); background: color-mix(in srgb, var(--k) 18%, var(--surface)); }
+.kopt input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+.chk { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.err { color: var(--bad); font-size: 13px; min-height: 1.2em; }
+.fa { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+.toast { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.toast p { background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 3px; font-weight: 600; max-width: 520px; }
+
+@media (max-width: 959px) {
+  .layout.with-panel { grid-template-columns: minmax(0, 1fr); }
+  .panel { position: static; }
+}
+@media (max-width: 899px) {
+  .week { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .chip { display: none; }
+  .more { display: none; }
+  .dots { display: flex; }
+  .day { min-height: 60px; padding: 4px; }
+  .dow { padding: 6px 4px; font-size: 10px; }
+  .search { max-width: none; }
+  .grow { margin-left: 0; }
+}
+@media (max-width: 520px) {
+  .form { grid-template-columns: minmax(0, 1fr); }
+  .tri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tri .fld:first-child { grid-column: 1 / -1; }
+  .sheet { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <section id="wait" class="gate">
+    <p class="lbl">Agenda da Turma</p>
+    <p class="meta">Verificando seu acesso…</p>
+  </section>
+
+  <section id="setup" class="gate" hidden>
+    <p class="lbl">Agenda da Turma</p>
+    <h1 class="gate-t">Falta configurar</h1>
+    <p>Abra o arquivo <code>firebase-config.js</code> e cole a configuração do seu projeto Firebase. O passo a passo está no <code>LEIA-ME.md</code>.</p>
+  </section>
+
+  <section id="login" class="gate" hidden>
+    <p class="lbl">Agenda da Turma</p>
+    <h1 class="gate-t">Entrar</h1>
+    <p>Use o e-mail e a senha cadastrados pelos responsáveis da turma.</p>
+    <form id="login-form" class="gform" novalidate>
+      <label class="fld" for="l-email"><span>E-mail</span>
+        <input id="l-email" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="fld" for="l-pass"><span>Senha</span>
+        <input id="l-pass" type="password" autocomplete="current-password">
+      </label>
+      <p id="l-err" class="err" role="alert"></p>
+      <p id="l-info" class="info" role="status"></p>
+      <div class="fa">
+        <button type="button" class="btn" id="l-reset">Esqueci a senha</button>
+        <button type="submit" class="btn pri" id="l-go">Entrar</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="noaccess" class="gate" hidden>
+    <p class="lbl">Agenda da Turma</p>
+    <h1 class="gate-t">Acesso ainda não liberado</h1>
+    <p>Sua conta existe, mas ainda não tem permissão para ver a agenda. Peça a quem gerencia a turma para liberar o seu acesso e depois recarregue esta página.</p>
+    <p class="meta" id="na-email"></p>
+    <div><button type="button" class="btn" id="na-out">Sair</button></div>
+  </section>
+
+  <div id="app" class="app" hidden>
+    <header class="top">
+      <h1 class="brand">Agenda da Turma</h1>
+      <div class="top-r">
+        <span id="sync" class="sync">Conectando…</span>
+        <span id="who" class="who"></span>
+        <span id="badge" class="badge">Somente leitura</span>
+        <button type="button" class="btn sm" id="logout">Sair</button>
+      </div>
+    </header>
+
+    <section id="soon" class="soon" aria-label="Próximas provas e entregas"></section>
+
+    <div class="head">
+      <h2 id="title" class="title"></h2>
+      <div class="nav">
+        <button type="button" class="btn" id="prev" aria-label="Anterior">‹</button>
+        <button type="button" class="btn" id="hoje">Hoje</button>
+        <button type="button" class="btn" id="next" aria-label="Próximo">›</button>
+      </div>
+    </div>
+
+    <div class="tools">
+      <div class="seg" id="seg">
+        <button type="button" data-view="mes" aria-pressed="true">Mês</button>
+        <button type="button" data-view="semana" aria-pressed="false">Semana</button>
+        <button type="button" data-view="lista" aria-pressed="false">Lista</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <input id="q" class="search" type="search" placeholder="Buscar" aria-label="Buscar compromissos" autocomplete="off">
+      <button type="button" class="btn pri grow" id="new" hidden>+ Novo compromisso</button>
+    </div>
+
+    <div id="layout" class="layout with-panel">
+      <div id="view" class="view"></div>
+      <aside id="panel" class="panel" aria-label="Compromissos do dia"></aside>
+    </div>
+  </div>
+</div>
+
+<div id="overlay" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h2 id="m-title" class="m-title">Novo compromisso</h2>
+    <form id="form" class="form" novalidate>
+      <div class="full">
+        <span class="lbl">Tipo</span>
+        <div class="kinds" role="radiogroup" aria-label="Tipo de compromisso">
+          <label class="kopt k-aula"><input type="radio" name="kind" value="aula" checked><span>Aula</span></label>
+          <label class="kopt k-prova"><input type="radio" name="kind" value="prova"><span>Prova</span></label>
+          <label class="kopt k-entrega"><input type="radio" name="kind" value="entrega"><span>Entrega</span></label>
+          <label class="kopt k-evento"><input type="radio" name="kind" value="evento"><span>Evento</span></label>
+        </div>
+      </div>
+      <label class="fld full" for="f-title"><span>Título</span>
+        <input id="f-title" maxlength="120" autocomplete="off" placeholder="Ex.: Cálculo II">
+      </label>
+      <div class="tri">
+        <label class="fld" for="f-date"><span>Data</span><input id="f-date" type="date"></label>
+        <label class="fld" for="f-start"><span>Início</span><input id="f-start" type="time"></label>
+        <label class="fld" for="f-end"><span>Fim</span><input id="f-end" type="time"></label>
+      </div>
+      <label class="fld" for="f-place"><span>Local</span><input id="f-place" maxlength="80" autocomplete="off" placeholder="Ex.: Sala 204, Bloco B"></label>
+      <label class="fld" for="f-teacher"><span>Professor(a)</span><input id="f-teacher" maxlength="80" autocomplete="off"></label>
+      <label class="fld full" for="f-note"><span>Observações</span><textarea id="f-note" rows="3" maxlength="600" placeholder="Conteúdo da prova, material, link da sala virtual…"></textarea></label>
+      <label class="chk full" for="f-repeat"><input id="f-repeat" type="checkbox"> Repete toda semana, no mesmo dia da semana</label>
+      <label class="fld full" id="until-wrap" for="f-until" hidden><span>Repetir até</span><input id="f-until" type="date"></label>
+      <p id="err" class="err full" role="alert"></p>
+      <div class="fa full">
+        <button type="button" class="btn dng" id="del" hidden>Excluir</button>
+        <button type="button" class="btn" id="cancel">Fechar</button>
+        <button type="submit" class="btn pri" id="save">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast" aria-live="polite"></div>
+
+<noscript><p style="padding:16px">Esta página precisa de JavaScript para funcionar.</p></noscript>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+var $ = function (s) { return document.querySelector(s); };
+var MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+var MON3 = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+var DOW3 = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+var DOWL = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+var KINDS = {
+  aula: { label: 'Aula', plural: 'Aulas' },
+  prova: { label: 'Prova', plural: 'Provas' },
+  entrega: { label: 'Entrega', plural: 'Entregas' },
+  evento: { label: 'Evento', plural: 'Eventos' }
+};
+var VIEWS = ['mes', 'semana', 'lista'];
+var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/* ---------- datas (sempre texto AAAA-MM-DD, sem fuso) ---------- */
+function pad(n) { return String(n).padStart(2, '0'); }
+function iso(y, m, d) { return y + '-' + pad(m) + '-' + pad(d); }
+function parse(s) { var a = s.split('-'); return { y: +a[0], m: +a[1], d: +a[2] }; }
+function toDate(s) { var p = parse(s); return new Date(p.y, p.m - 1, p.d); }
+function fromDate(dt) { return iso(dt.getFullYear(), dt.getMonth() + 1, dt.getDate()); }
+function addDays(s, n) { var dt = toDate(s); dt.setDate(dt.getDate() + n); return fromDate(dt); }
+function diffDays(a, b) {
+  var A = parse(a), B = parse(b);
+  return Math.round((Date.UTC(B.y, B.m - 1, B.d) - Date.UTC(A.y, A.m - 1, A.d)) / 86400000);
+}
+function weekday(s) { return toDate(s).getDay(); }
+function weekStart(s) { return addDays(s, -weekday(s)); }
+function fmtShort(s) { var p = parse(s); return DOW3[weekday(s)].toLowerCase() + ', ' + p.d + ' ' + MON3[p.m - 1]; }
+var today = fromDate(new Date());
+function relLabel(d) { var n = diffDays(today, d); return n === 0 ? 'hoje' : n === 1 ? 'amanhã' : 'em ' + n + ' dias'; }
+
+/* ---------- estado ---------- */
+var auth = null, db = null;
+var unsubRole = null, unsubEvents = null, slowTimer = null;
+var state = {
+  events: [], loaded: false, sync: 'wait',
+  access: 'pending',            // pending | setup | signedout | checking | noaccess | ok
+  user: null, canEdit: false,
+  view: 'mes', cursor: today, selected: today,
+  hidden: new Set(), query: '',
+  busy: false, editing: null, focusDate: null
+};
+
+/* ---------- utilidades ---------- */
+function h(tag, props) {
+  var el = document.createElement(tag);
+  if (props) {
+    Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v == null || v === false) return;
+      if (k === 'class') el.className = v;
+      else if (k === 'dataset') Object.assign(el.dataset, v);
+      else if (k.indexOf('on') === 0) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : v);
+    });
+  }
+  var kids = Array.prototype.slice.call(arguments, 2).flat();
+  kids.forEach(function (kid) {
+    if (kid == null || kid === false) return;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  });
+  return el;
+}
+function str(v) { return typeof v === 'string' ? v : ''; }
+function kindOf(ev) { return Object.prototype.hasOwnProperty.call(KINDS, ev.kind) ? ev.kind : 'evento'; }
+function timeLabel(ev) {
+  var s = str(ev.start), e = str(ev.end);
+  return s && e ? s + '–' + e : s ? s : 'Dia todo';
+}
+
+/* ---------- ocorrências ---------- */
+function occursOn(ev, d) {
+  if (typeof ev.date !== 'string' || !DATE_RE.test(ev.date)) return false;
+  if (ev.repeat === 'weekly') {
+    if (d < ev.date) return false;
+    if (typeof ev.until === 'string' && DATE_RE.test(ev.until) && d > ev.until) return false;
+    return diffDays(ev.date, d) % 7 === 0;
+  }
+  return ev.date === d;
+}
+function passes(ev) {
+  if (state.hidden.has(kindOf(ev))) return false;
+  if (!state.query) return true;
+  var hay = (str(ev.title) + ' ' + str(ev.place) + ' ' + str(ev.teacher) + ' ' + str(ev.note)).toLowerCase();
+  return hay.indexOf(state.query) !== -1;
+}
+function occurrencesOn(d, all) {
+  var out = [];
+  state.events.forEach(function (ev) {
+    if (!occursOn(ev, d)) return;
+    if (!all && !passes(ev)) return;
+    out.push({ ev: ev, date: d, cancelled: Array.isArray(ev.cancelled) && ev.cancelled.indexOf(d) !== -1 });
+  });
+  out.sort(function (a, b) {
+    var x = str(a.ev.start), y = str(b.ev.start);
+    if (x !== y) return x < y ? -1 : 1;
+    return str(a.ev.title).localeCompare(str(b.ev.title), 'pt-BR');
+  });
+  return out;
+}
+
+/* ---------- cartão de compromisso ---------- */
+function card(o) {
+  var ev = o.ev, k = kindOf(ev);
+  var meta = [str(ev.place), str(ev.teacher)].filter(Boolean).join(' · ');
+  var rec = '';
+  if (ev.repeat === 'weekly' && typeof ev.date === 'string' && DATE_RE.test(ev.date)) {
+    rec = 'Toda ' + DOWL[weekday(ev.date)] + (str(ev.until) ? ' até ' + fmtShort(ev.until) : '');
+  }
+  return h('article', { class: 'card k-' + k + (o.cancelled ? ' off' : '') },
+    h('div', { class: 'row1' },
+      h('span', { class: 'kind' }, KINDS[k].label),
+      o.cancelled ? h('span', { class: 'flag' }, 'Cancelada') : false,
+      h('span', { class: 'time' }, timeLabel(ev))
+    ),
+    h('h3', { class: 'ttl' }, str(ev.title) || 'Sem título'),
+    meta ? h('p', { class: 'meta' }, meta) : false,
+    str(ev.note) ? h('p', { class: 'note' }, str(ev.note)) : false,
+    rec ? h('p', { class: 'rec' }, rec) : false,
+    state.canEdit ? h('div', { class: 'acts' },
+      h('button', { type: 'button', class: 'btn sm', onclick: function () { openForm(ev); } }, 'Editar'),
+      h('button', { type: 'button', class: 'btn sm', onclick: function () { toggleCancel(o); } },
+        o.cancelled ? 'Restaurar este dia' : (ev.repeat === 'weekly' ? 'Cancelar só este dia' : 'Marcar como cancelada'))
+    ) : false
+  );
+}
+
+/* ---------- renderização ---------- */
+function renderTitle() {
+  var t = $('#title');
+  t.textContent = '';
+  if (state.view === 'semana') {
+    var s = weekStart(state.cursor), e = addDays(s, 6), ps = parse(s), pe = parse(e);
+    var txt = ps.m === pe.m ? ps.d + '–' + pe.d + ' ' + MON3[ps.m - 1] : ps.d + ' ' + MON3[ps.m - 1] + ' – ' + pe.d + ' ' + MON3[pe.m - 1];
+    t.append(h('span', { class: 'm' }, txt), h('span', { class: 'y' }, String(pe.y)));
+  } else {
+    var p = parse(state.cursor);
+    t.append(h('span', { class: 'm' }, MONTHS[p.m - 1]), h('span', { class: 'y' }, String(p.y)));
+  }
+}
+
+function renderSoon() {
+  var box = $('#soon');
+  box.textContent = '';
+  box.append(h('p', { class: 'lbl' }, 'Próximas provas e entregas'));
+  if (!state.loaded) {
+    box.append(h('p', { class: 'meta' }, state.sync === 'slow'
+      ? 'A agenda ainda não respondeu. Aguarde um instante ou recarregue a página.'
+      : 'Carregando a agenda…'));
+    return;
+  }
+  if (state.events.length === 0) {
+    box.append(h('p', { class: 'empty-t' }, 'Nenhum compromisso cadastrado ainda.'));
+    box.append(state.canEdit
+      ? h('div', null, h('button', { type: 'button', class: 'btn pri', onclick: function () { openForm(null, state.selected); } }, 'Cadastrar a primeira aula'))
+      : h('p', { class: 'meta' }, 'Os editores da turma ainda não cadastraram nada. Volte mais tarde.'));
+    return;
+  }
+  var items = [];
+  for (var i = 0; i <= 21 && items.length < 4; i++) {
+    var d = addDays(today, i);
+    occurrencesOn(d, true).forEach(function (o) {
+      var k = kindOf(o.ev);
+      if (!o.cancelled && (k === 'prova' || k === 'entrega') && items.length < 4) items.push(o);
+    });
+  }
+  if (!items.length) {
+    box.append(h('p', { class: 'meta' }, 'Nenhuma prova ou entrega nos próximos 21 dias.'));
+    return;
+  }
+  box.append(h('div', { class: 'soon-list' }, items.map(function (o) {
+    var k = kindOf(o.ev), st = str(o.ev.start);
+    return h('button', { type: 'button', class: 'soon-item k-' + k, onclick: function () { gotoDate(o.date); } },
+      h('span', { class: 'k' }, KINDS[k].label),
+      h('span', { class: 'tt' }, str(o.ev.title) || 'Sem título'),
+      h('span', { class: 'when' }, relLabel(o.date) + ' · ' + fmtShort(o.date) + (st ? ' · ' + st : ''))
+    );
+  })));
+}
+
+function renderMonth() {
+  var p = parse(state.cursor), first = iso(p.y, p.m, 1), lead = weekday(first);
+  var dim = new Date(p.y, p.m, 0).getDate(), rows = Math.ceil((lead + dim) / 7);
+  var start = addDays(first, -lead);
+  var grid = h('div', { class: 'grid' });
+  DOW3.forEach(function (n) { grid.append(h('div', { class: 'dow' }, n)); });
+  for (var i = 0; i < rows * 7; i++) {
+    var d = addDays(start, i), pd = parse(d), occ = occurrencesOn(d);
+    var label = pd.d + ' de ' + MONTHS[pd.m - 1].toLowerCase() + (occ.length ? ', ' + occ.length + (occ.length > 1 ? ' compromissos' : ' compromisso') : '');
+    grid.append(h('button', {
+      type: 'button',
+      class: 'day' + (pd.m !== p.m ? ' out' : '') + (d === today ? ' today' : '') + (d === state.selected ? ' sel' : ''),
+      dataset: { date: d },
+      'aria-label': label,
+      'aria-pressed': d === state.selected ? 'true' : 'false',
+      onclick: (function (dd) { return function () { selectDay(dd); }; })(d)
+    },
+      h('span', { class: 'num' }, String(pd.d)),
+      occ.slice(0, 3).map(function (o) {
+        return h('span', { class: 'chip k-' + kindOf(o.ev) + (o.cancelled ? ' off' : '') },
+          str(o.ev.start) ? h('span', { class: 't' }, str(o.ev.start)) : false,
+          h('span', { class: 'x' }, str(o.ev.title) || 'Sem título'));
+      }),
+      occ.length > 3 ? h('span', { class: 'more' }, '+' + (occ.length - 3)) : false,
+      occ.length ? h('span', { class: 'dots' }, occ.slice(0, 6).map(function (o) {
+        return h('span', { class: 'dot k-' + kindOf(o.ev) + (o.cancelled ? ' off' : '') });
+      })) : false
+    ));
+  }
+  return grid;
+}
+
+function renderWeek() {
+  var s = weekStart(state.cursor), wrap = h('div', { class: 'week' });
+  for (var i = 0; i < 7; i++) {
+    var d = addDays(s, i), occ = occurrencesOn(d);
+    wrap.append(h('section', { class: 'wcol' + (d === today ? ' today' : '') },
+      h('header', null, h('span', { class: 'wd' }, DOW3[i]), h('span', { class: 'wn' }, String(parse(d).d))),
+      occ.length ? occ.map(card) : h('p', { class: 'none' }, 'Nada marcado')
+    ));
+  }
+  return wrap;
+}
+
+function renderList() {
+  var p = parse(state.cursor), dim = new Date(p.y, p.m, 0).getDate(), rows = [];
+  for (var n = 1; n <= dim; n++) {
+    var d = iso(p.y, p.m, n), occ = occurrencesOn(d);
+    if (!occ.length) continue;
+    rows.push(h('section', { class: 'dayrow' + (d === today ? ' today' : '') },
+      h('div', null, h('div', { class: 'dn' }, String(n)), h('div', { class: 'dw' }, DOW3[weekday(d)])),
+      h('div', { class: 'stack' }, occ.map(card))
+    ));
+  }
+  if (!rows.length) {
+    return h('p', { class: 'blank' }, state.events.length ? 'Nenhum compromisso neste mês com os filtros atuais.' : 'Nada para mostrar neste mês.');
+  }
+  return h('div', { class: 'list' }, rows);
+}
+
+function renderPanel() {
+  var box = $('#panel');
+  box.textContent = '';
+  var d = state.selected, p = parse(d), occ = occurrencesOn(d), hiddenCount = occurrencesOn(d, true).length - occ.length;
+  box.append(h('header', { class: 'ph' },
+    h('span', { class: 'pn' }, String(p.d)),
+    h('div', null, h('p', { class: 'pw' }, DOWL[weekday(d)]), h('p', { class: 'pm' }, MONTHS[p.m - 1] + ' de ' + p.y)),
+    d === today ? h('span', { class: 'hoje' }, 'Hoje') : false
+  ));
+  if (occ.length) occ.forEach(function (o) { box.append(card(o)); });
+  else box.append(h('p', { class: 'meta' }, 'Nada marcado para este dia.'));
+  if (hiddenCount > 0) box.append(h('p', { class: 'meta' }, hiddenCount + (hiddenCount > 1 ? ' compromissos ocultos' : ' compromisso oculto') + ' pelos filtros.'));
+  if (state.canEdit) {
+    box.append(h('button', { type: 'button', class: 'btn', onclick: function () { openForm(null, d); } }, '+ Adicionar neste dia'));
+  }
+}
+
+function renderBody() {
+  var v = $('#view');
+  v.textContent = '';
+  var withPanel = state.view === 'mes';
+  $('#layout').classList.toggle('with-panel', withPanel);
+  $('#panel').hidden = !withPanel;
+  if (state.view === 'mes') { v.append(renderMonth()); renderPanel(); }
+  else if (state.view === 'semana') v.append(renderWeek());
+  else v.append(renderList());
+}
+
+var SYNC_TEXT = {
+  wait: 'Conectando…',
+  ok: 'Sincronizada',
+  slow: 'Sem resposta da agenda. Os dados podem estar desatualizados.',
+  error: 'Não foi possível carregar a agenda.'
+};
+function syncUI() {
+  var s = $('#sync');
+  s.textContent = SYNC_TEXT[state.sync] || '';
+  s.className = 'sync ' + state.sync;
+  $('#who').textContent = state.user && state.user.email ? state.user.email : '';
+  var b = $('#badge');
+  b.textContent = state.canEdit ? 'Editor' : 'Somente leitura';
+  b.className = 'badge' + (state.canEdit ? ' edit' : '');
+  $('#new').hidden = !state.canEdit;
+  document.querySelectorAll('#seg button').forEach(function (btn) {
+    btn.setAttribute('aria-pressed', btn.dataset.view === state.view ? 'true' : 'false');
+  });
+  document.querySelectorAll('#chips .fchip').forEach(function (c) {
+    c.setAttribute('aria-pressed', state.hidden.has(c.dataset.kind) ? 'false' : 'true');
+  });
+}
+
+function render() {
+  var a = state.access;
+  $('#wait').hidden = !(a === 'pending' || a === 'checking');
+  $('#setup').hidden = a !== 'setup';
+  $('#login').hidden = a !== 'signedout';
+  $('#noaccess').hidden = a !== 'noaccess';
+  $('#app').hidden = a !== 'ok';
+  if (a === 'noaccess') $('#na-email').textContent = state.user && state.user.email ? 'Conta: ' + state.user.email : '';
+  if (a !== 'ok') {
+    if (!$('#overlay').hidden) closeForm();
+    return;
+  }
+  renderTitle(); renderSoon(); renderBody(); syncUI();
+  if (state.focusDate) {
+    var el = document.querySelector('.day[data-date="' + state.focusDate + '"]');
+    if (el) el.focus({ preventScroll: true });
+    state.focusDate = null;
+  }
+}
+
+/* ---------- navegação ---------- */
+function selectDay(d) {
+  state.selected = d;
+  state.focusDate = d;
+  if (parse(d).m !== parse(state.cursor).m) state.cursor = d;
+  render();
+}
+function gotoDate(d) {
+  state.cursor = d; state.selected = d;
+  if (state.view === 'lista') setView('mes', true);
+  render();
+}
+function setView(v, silent) {
+  state.view = v;
+  if (v === 'mes' && parse(state.selected).m !== parse(state.cursor).m) state.selected = state.cursor;
+  try { if (location.hash !== '#' + v) location.hash = '#' + v; } catch (e) { /* sem hash */ }
+  if (!silent) render();
+}
+function shift(dir) {
+  if (state.view === 'semana') {
+    state.cursor = addDays(state.cursor, 7 * dir);
+    state.selected = state.cursor;
+  } else {
+    var p = parse(state.cursor);
+    state.cursor = fromDate(new Date(p.y, p.m - 1 + dir, 1));
+    var t = parse(today), c = parse(state.cursor);
+    state.selected = (t.y === c.y && t.m === c.m) ? today : state.cursor;
+  }
+  render();
+}
+function applyHash() {
+  var v = location.hash.slice(1);
+  if (VIEWS.indexOf(v) !== -1 && v !== state.view) setView(v);
+}
+
+/* ---------- edição (somente editores) ---------- */
+var toastTimer = null;
+function toast(msg) {
+  var t = $('#toast');
+  t.textContent = '';
+  t.append(h('p', null, msg));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.textContent = ''; }, 5000);
+}
+function dbMessage(e) {
+  var c = e && e.code;
+  if (c === 'permission-denied') return 'Sem permissão para alterar a agenda. Só os editores podem salvar.';
+  if (c === 'unavailable') return 'Sem conexão com o Firebase. Verifique a internet e tente de novo.';
+  if (c === 'resource-exhausted') return 'O limite de uso gratuito do Firebase foi atingido por hoje.';
+  return 'Não foi possível salvar agora. Tente de novo em instantes.';
+}
+function setBusy(b) {
+  state.busy = b;
+  document.body.classList.toggle('busy', b);
+  $('#save').disabled = b;
+  $('#save').textContent = b ? 'Salvando…' : 'Salvar';
+  $('#del').disabled = b;
+}
+function disarmDelete() {
+  var d = $('#del');
+  d.textContent = 'Excluir';
+  d.classList.remove('arm');
+  d.dataset.armed = '';
+}
+function openForm(ev, presetDate) {
+  if (!state.canEdit) return;
+  state.editing = ev || null;
+  $('#form').reset();
+  $('#m-title').textContent = ev ? 'Editar compromisso' : 'Novo compromisso';
+  var k = ev ? kindOf(ev) : 'aula';
+  document.querySelector('input[name="kind"][value="' + k + '"]').checked = true;
+  $('#f-title').value = ev ? str(ev.title) : '';
+  $('#f-date').value = ev ? str(ev.date) : (presetDate || state.selected);
+  $('#f-start').value = ev ? str(ev.start) : '';
+  $('#f-end').value = ev ? str(ev.end) : '';
+  $('#f-place').value = ev ? str(ev.place) : '';
+  $('#f-teacher').value = ev ? str(ev.teacher) : '';
+  $('#f-note').value = ev ? str(ev.note) : '';
+  var rep = !!ev && ev.repeat === 'weekly';
+  $('#f-repeat').checked = rep;
+  $('#f-until').value = ev ? str(ev.until) : '';
+  $('#until-wrap').hidden = !rep;
+  $('#del').hidden = !ev;
+  disarmDelete();
+  $('#err').textContent = '';
+  setBusy(false);
+  $('#overlay').hidden = false;
+  $('#f-title').focus();
+}
+function closeForm() {
+  $('#overlay').hidden = true;
+  state.editing = null;
+}
+function readForm() {
+  var rep = $('#f-repeat').checked;
+  return {
+    kind: document.querySelector('input[name="kind"]:checked').value,
+    title: $('#f-title').value.trim(),
+    date: $('#f-date').value,
+    start: $('#f-start').value,
+    end: $('#f-end').value,
+    place: $('#f-place').value.trim(),
+    teacher: $('#f-teacher').value.trim(),
+    note: $('#f-note').value.trim(),
+    repeat: rep ? 'weekly' : '',
+    until: rep ? $('#f-until').value : ''
+  };
+}
+function validate(d) {
+  if (!d.title) return 'Informe o título do compromisso.';
+  if (!DATE_RE.test(d.date)) return 'Informe a data.';
+  if (d.end && !d.start) return 'Informe o horário de início ou deixe o fim em branco.';
+  if (d.start && d.end && d.end <= d.start) return 'O horário de término precisa ser depois do início.';
+  if (d.repeat && d.until && d.until < d.date) return 'A data final da repetição precisa ser depois da data inicial.';
+  return '';
+}
+
+async function toggleCancel(o) {
+  if (state.busy || !db) return;
+  var cur = Array.isArray(o.ev.cancelled) ? o.ev.cancelled.slice() : [];
+  var next = o.cancelled ? cur.filter(function (x) { return x !== o.date; }) : cur.concat(o.date);
+  setBusy(true);
+  try { await updateDoc(doc(db, 'events', o.ev.id), { cancelled: next }); }
+  catch (e) { toast(dbMessage(e)); }
+  finally { setBusy(false); }
+}
+
+/* ---------- login ---------- */
+function authMessage(e) {
+  var c = e && e.code;
+  if (c === 'auth/invalid-credential' || c === 'auth/wrong-password' || c === 'auth/user-not-found') return 'E-mail ou senha incorretos.';
+  if (c === 'auth/invalid-email') return 'Esse e-mail não parece válido.';
+  if (c === 'auth/user-disabled') return 'Esta conta foi desativada.';
+  if (c === 'auth/too-many-requests') return 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
+  if (c === 'auth/network-request-failed') return 'Sem conexão. Verifique a internet e tente de novo.';
+  return 'Não foi possível entrar. Tente de novo.';
+}
+
+/* ---------- ligações da interface ---------- */
+function wire() {
+  Object.keys(KINDS).forEach(function (k) {
+    $('#chips').append(h('button', {
+      type: 'button', class: 'fchip k-' + k, 'aria-pressed': 'true', dataset: { kind: k },
+      onclick: function () { if (state.hidden.has(k)) state.hidden.delete(k); else state.hidden.add(k); render(); }
+    }, KINDS[k].plural));
+  });
+  document.querySelectorAll('#seg button').forEach(function (b) {
+    b.addEventListener('click', function () { setView(b.dataset.view); });
+  });
+  $('#prev').addEventListener('click', function () { shift(-1); });
+  $('#next').addEventListener('click', function () { shift(1); });
+  $('#hoje').addEventListener('click', function () { state.cursor = today; state.selected = today; render(); });
+  $('#q').addEventListener('input', function (e) { state.query = e.target.value.trim().toLowerCase(); renderBody(); });
+  $('#new').addEventListener('click', function () { openForm(null, state.selected); });
+  window.addEventListener('hashchange', applyHash);
+
+  $('#logout').addEventListener('click', function () { if (auth) signOut(auth); });
+  $('#na-out').addEventListener('click', function () { if (auth) signOut(auth); });
+
+  $('#login-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var email = $('#l-email').value.trim(), pass = $('#l-pass').value;
+    $('#l-err').textContent = ''; $('#l-info').textContent = '';
+    if (!email || !pass) { $('#l-err').textContent = 'Informe o e-mail e a senha.'; return; }
+    $('#l-go').disabled = true;
+    try { await signInWithEmailAndPassword(auth, email, pass); $('#l-pass').value = ''; }
+    catch (err) { $('#l-err').textContent = authMessage(err); }
+    finally { $('#l-go').disabled = false; }
+  });
+  $('#l-reset').addEventListener('click', async function () {
+    var email = $('#l-email').value.trim();
+    $('#l-err').textContent = ''; $('#l-info').textContent = '';
+    if (!email) { $('#l-err').textContent = 'Digite seu e-mail acima e toque em "Esqueci a senha".'; return; }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      $('#l-info').textContent = 'Se esse e-mail estiver cadastrado, você vai receber um link para criar uma nova senha.';
+    } catch (err) {
+      $('#l-err').textContent = authMessage(err);
+    }
+  });
+
+  $('#f-repeat').addEventListener('change', function (e) { $('#until-wrap').hidden = !e.target.checked; });
+  $('#cancel').addEventListener('click', closeForm);
+  $('#overlay').addEventListener('mousedown', function (e) { if (e.target === $('#overlay')) closeForm(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#overlay').hidden) closeForm(); });
+
+  $('#del').addEventListener('click', async function () {
+    var btn = $('#del');
+    if (!state.editing || state.busy) return;
+    if (!btn.dataset.armed) {
+      btn.dataset.armed = '1';
+      btn.textContent = 'Confirmar exclusão';
+      btn.classList.add('arm');
+      return;
+    }
+    setBusy(true);
+    try { await deleteDoc(doc(db, 'events', state.editing.id)); closeForm(); }
+    catch (e) { $('#err').textContent = dbMessage(e); disarmDelete(); }
+    finally { setBusy(false); }
+  });
+
+  $('#form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (state.busy || !db) return;
+    var data = readForm(), msg = validate(data);
+    if (msg) { $('#err').textContent = msg; return; }
+    $('#err').textContent = '';
+    setBusy(true);
+    try {
+      if (state.editing) {
+        data.cancelled = Array.isArray(state.editing.cancelled) ? state.editing.cancelled : [];
+        await setDoc(doc(db, 'events', state.editing.id), data);
+      } else {
+        data.cancelled = [];
+        await addDoc(collection(db, 'events'), data);
+      }
+      closeForm();
+      state.cursor = data.date; state.selected = data.date;
+      render();
+    } catch (err) {
+      $('#err').textContent = dbMessage(err);
+    } finally {
+      setBusy(false);
+    }
+  });
+}
+
+/* ---------- Firebase: sessão, perfil e dados ---------- */
+function stopEvents() {
+  if (unsubEvents) { unsubEvents(); unsubEvents = null; }
+  clearTimeout(slowTimer);
+  state.events = []; state.loaded = false; state.sync = 'wait';
+}
+function subscribeEvents() {
+  state.sync = 'wait'; state.loaded = false;
+  slowTimer = setTimeout(function () {
+    if (state.sync === 'wait') { state.sync = 'slow'; render(); }
+  }, 10000);
+  unsubEvents = onSnapshot(collection(db, 'events'), function (snap) {
+    state.events = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+    state.loaded = !snap.metadata.fromCache || snap.size > 0;
+    if (!snap.metadata.fromCache) { state.sync = 'ok'; clearTimeout(slowTimer); }
+    else if (state.sync !== 'slow') state.sync = 'wait';
+    render();
+  }, function () {
+    clearTimeout(slowTimer);
+    state.sync = 'error';
+    render();
+  });
+}
+function handleUser(user) {
+  if (unsubRole) { unsubRole(); unsubRole = null; }
+  stopEvents();
+  state.user = user; state.canEdit = false;
+  if (!user) { state.access = 'signedout'; render(); return; }
+  state.access = 'checking';
+  render();
+  // O perfil da pessoa fica em roles/{uid}.role ("viewer" ou "editor"), definido por quem gerencia o Firebase.
+  unsubRole = onSnapshot(doc(db, 'roles', user.uid), function (snap) {
+    var role = snap.exists() ? snap.data().role : null;
+    if (role !== 'viewer' && role !== 'editor') {
+      stopEvents();
+      state.canEdit = false;
+      state.access = 'noaccess';
+      render();
+      return;
+    }
+    state.canEdit = role === 'editor';
+    if (state.access !== 'ok') { state.access = 'ok'; subscribeEvents(); }
+    render();
+  }, function () {
+    stopEvents();
+    state.canEdit = false;
+    state.access = 'noaccess';
+    render();
+  });
+}
+
+function configured() {
+  var c = firebaseConfig || {};
+  return typeof c.apiKey === 'string' && c.apiKey.indexOf('COLE') !== 0 && typeof c.projectId === 'string' && c.projectId.indexOf('SEU-') !== 0;
+}
+
+function init() {
+  wire();
+  var hv = location.hash.slice(1);
+  if (VIEWS.indexOf(hv) !== -1) state.view = hv;
+  if (!configured()) { state.access = 'setup'; render(); return; }
+  try {
+    var app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (e) {
+    state.access = 'setup'; render(); return;
+  }
+  render();
+  onAuthStateChanged(auth, handleUser);
+}
+
+init();
+</script>
+</body>
+</html>

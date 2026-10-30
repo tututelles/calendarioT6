@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // O perfil de cada pessoa fica em roles/{uid}, com o campo role = "viewer" ou "editor".
+    // Só quem gerencia o projeto edita esses documentos, pelo Console do Firebase.
+    function hasRole(allowed) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/roles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role in allowed;
+    }
+
+    function validEvent(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && d.kind in ['aula', 'prova', 'entrega', 'evento']
+        && d.date is string && d.date.size() == 10;
+    }
+
+    match /roles/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /events/{eventId} {
+      allow read: if hasRole(['viewer', 'editor']);
+      allow create, update: if hasRole(['editor']) && validEvent(request.resource.data);
+      allow delete: if hasRole(['editor']);
+    }
+  }
+}
