@@ -129,7 +129,11 @@ h1, h2, h3, p { margin: 0; }
 .fchip[aria-pressed="false"] { border-color: var(--line); background: transparent; color: var(--ink-2); }
 .fchip[aria-pressed="false"]::before { opacity: .35; }
 .search { flex: 1 1 160px; max-width: 260px; min-width: 0; }
-.grow { margin-left: auto; }
+.tr { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.linkbtn { background: none; border: 0; padding: 0; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.uid { display: block; font: 500 14px/1.4 var(--font-mono); background: var(--surface-2); padding: 10px 12px; border-radius: 3px; overflow-wrap: anywhere; user-select: all; }
+.fa.left { justify-content: flex-start; }
+.xtext { font: 500 15px/1.5 var(--font-mono); white-space: pre; overflow: auto; min-height: 280px; resize: vertical; }
 input, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 9px 10px; min-height: 40px; width: 100%; min-width: 0; font-size: 16px; }
 input:focus, textarea:focus { border-color: var(--ink); }
 input[type="checkbox"] { width: 18px; min-height: 18px; height: 18px; padding: 0; accent-color: var(--ink); }
@@ -243,7 +247,7 @@ code { font: 500 13px var(--font-mono); background: var(--surface-2); padding: 1
   .day { min-height: 60px; padding: 4px; }
   .dow { padding: 6px 4px; font-size: 10px; }
   .search { max-width: none; }
-  .grow { margin-left: 0; }
+  .tr { margin-left: 0; }
 }
 @media (max-width: 520px) {
   .form { grid-template-columns: minmax(0, 1fr); }
@@ -271,7 +275,7 @@ code { font: 500 13px var(--font-mono); background: var(--surface-2); padding: 1
   <section id="login" class="gate" hidden>
     <p class="lbl">Agenda da Turma</p>
     <h1 class="gate-t">Entrar</h1>
-    <p>Use o e-mail e a senha cadastrados pelos responsáveis da turma.</p>
+    <p>Entre com seu e-mail e senha. Primeira vez aqui? <button type="button" class="linkbtn" id="to-signup">Criar conta</button></p>
     <form id="login-form" class="gform" novalidate>
       <label class="fld" for="l-email"><span>E-mail</span>
         <input id="l-email" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false">
@@ -288,12 +292,41 @@ code { font: 500 13px var(--font-mono); background: var(--surface-2); padding: 1
     </form>
   </section>
 
+  <section id="signup" class="gate" hidden>
+    <p class="lbl">Agenda da Turma</p>
+    <h1 class="gate-t">Criar conta</h1>
+    <p>Crie sua conta e depois envie o código de acesso que vai aparecer para quem gerencia a turma. Você só vê a agenda quando ele liberar. Já tem conta? <button type="button" class="linkbtn" id="to-login">Entrar</button></p>
+    <form id="signup-form" class="gform" novalidate>
+      <label class="fld" for="s-name"><span>Nome</span>
+        <input id="s-name" autocomplete="name" maxlength="80">
+      </label>
+      <label class="fld" for="s-email"><span>E-mail</span>
+        <input id="s-email" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="fld" for="s-pass"><span>Senha (mínimo de 8 caracteres)</span>
+        <input id="s-pass" type="password" autocomplete="new-password">
+      </label>
+      <label class="fld" for="s-pass2"><span>Repita a senha</span>
+        <input id="s-pass2" type="password" autocomplete="new-password">
+      </label>
+      <p id="s-err" class="err" role="alert"></p>
+      <div class="fa">
+        <button type="submit" class="btn pri" id="s-go">Criar conta</button>
+      </div>
+    </form>
+  </section>
+
   <section id="noaccess" class="gate" hidden>
     <p class="lbl">Agenda da Turma</p>
     <h1 class="gate-t">Acesso ainda não liberado</h1>
-    <p>Sua conta existe, mas ainda não tem permissão para ver a agenda. Peça a quem gerencia a turma para liberar o seu acesso e depois recarregue esta página.</p>
+    <p>Sua conta existe, mas ainda não tem permissão para ver a agenda. Envie o código abaixo para quem gerencia a turma. Assim que o acesso for liberado, esta tela atualiza sozinha.</p>
     <p class="meta" id="na-email"></p>
-    <div><button type="button" class="btn" id="na-out">Sair</button></div>
+    <p class="lbl">Seu código de acesso</p>
+    <code id="na-uid" class="uid"></code>
+    <div class="fa left">
+      <button type="button" class="btn pri" id="na-copy">Copiar código</button>
+      <button type="button" class="btn" id="na-out">Sair</button>
+    </div>
   </section>
 
   <div id="app" class="app" hidden>
@@ -326,7 +359,10 @@ code { font: 500 13px var(--font-mono); background: var(--surface-2); padding: 1
       </div>
       <div class="chips" id="chips"></div>
       <input id="q" class="search" type="search" placeholder="Buscar" aria-label="Buscar compromissos" autocomplete="off">
-      <button type="button" class="btn pri grow" id="new" hidden>+ Novo compromisso</button>
+      <div class="tr">
+        <button type="button" class="btn" id="export" hidden>Exportar texto</button>
+        <button type="button" class="btn pri" id="new" hidden>+ Novo compromisso</button>
+      </div>
     </div>
 
     <div id="layout" class="layout with-panel">
@@ -372,13 +408,26 @@ code { font: 500 13px var(--font-mono); background: var(--surface-2); padding: 1
   </div>
 </div>
 
+<div id="xoverlay" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="x-title">
+    <h2 id="x-title" class="m-title">Exportar agenda</h2>
+    <p class="meta" id="x-count"></p>
+    <textarea id="x-text" class="xtext" readonly wrap="off" spellcheck="false" aria-label="Texto da agenda"></textarea>
+    <div class="fa">
+      <button type="button" class="btn" id="x-close">Fechar</button>
+      <button type="button" class="btn" id="x-copy">Copiar texto</button>
+      <button type="button" class="btn pri" id="x-save">Baixar .txt</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast" aria-live="polite"></div>
 
 <noscript><p style="padding:16px">Esta página precisa de JavaScript para funcionar.</p></noscript>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -419,7 +468,7 @@ var unsubRole = null, unsubEvents = null, slowTimer = null;
 var state = {
   events: [], loaded: false, sync: 'wait',
   access: 'pending',            // pending | setup | signedout | checking | noaccess | ok
-  user: null, canEdit: false,
+  user: null, canEdit: false, authView: 'login',   // login | signup
   view: 'mes', cursor: today, selected: today,
   hidden: new Set(), query: '',
   busy: false, editing: null, focusDate: null
@@ -665,6 +714,7 @@ function syncUI() {
   b.textContent = state.canEdit ? 'Editor' : 'Somente leitura';
   b.className = 'badge' + (state.canEdit ? ' edit' : '');
   $('#new').hidden = !state.canEdit;
+  $('#export').hidden = !state.canEdit;
   document.querySelectorAll('#seg button').forEach(function (btn) {
     btn.setAttribute('aria-pressed', btn.dataset.view === state.view ? 'true' : 'false');
   });
@@ -677,15 +727,22 @@ function render() {
   var a = state.access;
   $('#wait').hidden = !(a === 'pending' || a === 'checking');
   $('#setup').hidden = a !== 'setup';
-  $('#login').hidden = a !== 'signedout';
+  $('#login').hidden = !(a === 'signedout' && state.authView === 'login');
+  $('#signup').hidden = !(a === 'signedout' && state.authView === 'signup');
   $('#noaccess').hidden = a !== 'noaccess';
   $('#app').hidden = a !== 'ok';
-  if (a === 'noaccess') $('#na-email').textContent = state.user && state.user.email ? 'Conta: ' + state.user.email : '';
+  if (a === 'noaccess') {
+    var u = state.user;
+    $('#na-email').textContent = u ? (u.displayName ? u.displayName + ' · ' : '') + (u.email || '') : '';
+    $('#na-uid').textContent = u ? u.uid : '';
+  }
   if (a !== 'ok') {
     if (!$('#overlay').hidden) closeForm();
+    if (!$('#xoverlay').hidden) closeExport();
     return;
   }
   renderTitle(); renderSoon(); renderBody(); syncUI();
+  if (!state.canEdit && !$('#xoverlay').hidden) closeExport();
   if (state.focusDate) {
     var el = document.querySelector('.day[data-date="' + state.focusDate + '"]');
     if (el) el.focus({ preventScroll: true });
@@ -725,6 +782,11 @@ function shift(dir) {
 }
 function applyHash() {
   var v = location.hash.slice(1);
+  if (state.access === 'signedout') {
+    var av = v === 'cadastro' ? 'signup' : v === 'entrar' ? 'login' : null;
+    if (av && av !== state.authView) { state.authView = av; render(); }
+    return;
+  }
   if (VIEWS.indexOf(v) !== -1 && v !== state.view) setView(v);
 }
 
@@ -820,11 +882,118 @@ async function toggleCancel(o) {
   finally { setBusy(false); }
 }
 
+/* ---------- exportar em texto (editores) ---------- */
+function fmtBR(s) { var p = parse(s); return pad(p.d) + '/' + pad(p.m) + '/' + p.y; }
+function buildExport() {
+  var now = new Date();
+  var evs = state.events.filter(function (e) { return typeof e.date === 'string' && DATE_RE.test(e.date); });
+  var lines = [
+    'AGENDA DA TURMA',
+    'Exportado em ' + fmtBR(fromDate(now)) + ' às ' + pad(now.getHours()) + ':' + pad(now.getMinutes()),
+    'Total: ' + evs.length + (evs.length === 1 ? ' compromisso' : ' compromissos'),
+    ''
+  ];
+  if (!evs.length) { lines.push('Nenhum compromisso cadastrado.'); return lines.join('\n') + '\n'; }
+  Object.keys(KINDS).forEach(function (k) {
+    var list = evs.filter(function (e) { return kindOf(e) === k; }).sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      var x = str(a.start), y = str(b.start);
+      if (x !== y) return x < y ? -1 : 1;
+      return str(a.title).localeCompare(str(b.title), 'pt-BR');
+    });
+    if (!list.length) return;
+    lines.push('=== ' + KINDS[k].plural.toUpperCase() + ' (' + list.length + ') ===', '');
+    list.forEach(function (ev) {
+      lines.push(str(ev.title) || 'Sem título');
+      var hora = str(ev.start) ? timeLabel(ev) : 'dia todo';
+      var quando;
+      if (ev.repeat === 'weekly') {
+        quando = 'Toda ' + DOWL[weekday(ev.date)] + ', a partir de ' + fmtBR(ev.date)
+          + (DATE_RE.test(str(ev.until)) ? ' até ' + fmtBR(ev.until) : '') + ', ' + hora;
+      } else {
+        quando = fmtBR(ev.date) + ' (' + DOWL[weekday(ev.date)] + '), ' + hora;
+      }
+      lines.push('  Quando: ' + quando);
+      if (str(ev.place)) lines.push('  Local: ' + str(ev.place));
+      if (str(ev.teacher)) lines.push('  Professor(a): ' + str(ev.teacher));
+      if (str(ev.note)) lines.push('  Observações: ' + str(ev.note).replace(/\r?\n/g, '\n    '));
+      var canc = Array.isArray(ev.cancelled)
+        ? ev.cancelled.filter(function (x) { return typeof x === 'string' && DATE_RE.test(x); }).sort() : [];
+      if (canc.length) lines.push('  Datas canceladas: ' + canc.map(fmtBR).join(', '));
+      lines.push('');
+    });
+  });
+  return lines.join('\n').replace(/\n+$/, '\n');
+}
+function openExport() {
+  if (!state.canEdit) return;
+  $('#x-text').value = buildExport();
+  var n = state.events.length;
+  $('#x-count').textContent = n + (n === 1 ? ' compromisso cadastrado.' : ' compromissos cadastrados.') + ' O texto inclui tudo, sem aplicar os filtros da tela.';
+  $('#xoverlay').hidden = false;
+  $('#x-close').focus();
+}
+function closeExport() { $('#xoverlay').hidden = true; }
+async function copyText(text, okMsg, failMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg); }
+  catch (e) { toast(failMsg); }
+}
+function copyExport() {
+  var t = $('#x-text');
+  copyText(t.value, 'Texto copiado.', 'Não foi possível copiar sozinho. Selecione o texto e copie.');
+  t.select();
+}
+function downloadExport() {
+  var blob = new Blob(['﻿' + $('#x-text').value], { type: 'text/plain;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = h('a', { href: url, download: 'agenda-turma-' + fromDate(new Date()) + '.txt' });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+function copyUid() {
+  if (!state.user) return;
+  copyText(state.user.uid, 'Código copiado.', 'Não foi possível copiar sozinho. Selecione o código e copie.');
+}
+
+/* ---------- cadastro de conta ---------- */
+function setAuthView(v) {
+  state.authView = v;
+  $('#l-err').textContent = ''; $('#l-info').textContent = ''; $('#s-err').textContent = '';
+  try { location.hash = v === 'signup' ? '#cadastro' : '#entrar'; } catch (e) { /* sem hash */ }
+  render();
+}
+async function onSignup(e) {
+  e.preventDefault();
+  var name = $('#s-name').value.trim(), email = $('#s-email').value.trim();
+  var p1 = $('#s-pass').value, p2 = $('#s-pass2').value, err = $('#s-err');
+  err.textContent = '';
+  if (name.length < 2) { err.textContent = 'Informe seu nome.'; return; }
+  if (!email) { err.textContent = 'Informe seu e-mail.'; return; }
+  if (p1.length < 8) { err.textContent = 'A senha precisa ter pelo menos 8 caracteres.'; return; }
+  if (p1 !== p2) { err.textContent = 'As duas senhas não são iguais.'; return; }
+  $('#s-go').disabled = true;
+  try {
+    var cred = await createUserWithEmailAndPassword(auth, email, p1);
+    try { await updateProfile(cred.user, { displayName: name }); } catch (x) { /* o nome é opcional */ }
+    $('#s-pass').value = ''; $('#s-pass2').value = '';
+    render();
+  } catch (x) {
+    err.textContent = authMessage(x);
+  } finally {
+    $('#s-go').disabled = false;
+  }
+}
+
 /* ---------- login ---------- */
 function authMessage(e) {
   var c = e && e.code;
   if (c === 'auth/invalid-credential' || c === 'auth/wrong-password' || c === 'auth/user-not-found') return 'E-mail ou senha incorretos.';
   if (c === 'auth/invalid-email') return 'Esse e-mail não parece válido.';
+  if (c === 'auth/email-already-in-use') return 'Já existe uma conta com esse e-mail. Use "Entrar" ou "Esqueci a senha".';
+  if (c === 'auth/weak-password') return 'Senha fraca. Use pelo menos 8 caracteres, misturando letras e números.';
+  if (c === 'auth/operation-not-allowed') return 'O cadastro de contas está desativado neste projeto. Peça ao responsável pela turma.';
   if (c === 'auth/user-disabled') return 'Esta conta foi desativada.';
   if (c === 'auth/too-many-requests') return 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
   if (c === 'auth/network-request-failed') return 'Sem conexão. Verifique a internet e tente de novo.';
@@ -850,6 +1019,15 @@ function wire() {
   window.addEventListener('hashchange', applyHash);
 
   $('#logout').addEventListener('click', function () { if (auth) signOut(auth); });
+  $('#to-signup').addEventListener('click', function () { setAuthView('signup'); });
+  $('#to-login').addEventListener('click', function () { setAuthView('login'); });
+  $('#signup-form').addEventListener('submit', onSignup);
+  $('#na-copy').addEventListener('click', copyUid);
+  $('#export').addEventListener('click', openExport);
+  $('#x-close').addEventListener('click', closeExport);
+  $('#x-copy').addEventListener('click', copyExport);
+  $('#x-save').addEventListener('click', downloadExport);
+  $('#xoverlay').addEventListener('mousedown', function (e) { if (e.target === $('#xoverlay')) closeExport(); });
   $('#na-out').addEventListener('click', function () { if (auth) signOut(auth); });
 
   $('#login-form').addEventListener('submit', async function (e) {
@@ -877,7 +1055,11 @@ function wire() {
   $('#f-repeat').addEventListener('change', function (e) { $('#until-wrap').hidden = !e.target.checked; });
   $('#cancel').addEventListener('click', closeForm);
   $('#overlay').addEventListener('mousedown', function (e) { if (e.target === $('#overlay')) closeForm(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#overlay').hidden) closeForm(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!$('#xoverlay').hidden) closeExport();
+    else if (!$('#overlay').hidden) closeForm();
+  });
 
   $('#del').addEventListener('click', async function () {
     var btn = $('#del');
@@ -947,7 +1129,10 @@ function handleUser(user) {
   if (unsubRole) { unsubRole(); unsubRole = null; }
   stopEvents();
   state.user = user; state.canEdit = false;
-  if (!user) { state.access = 'signedout'; render(); return; }
+  if (!user) {
+    ['#l-pass', '#s-pass', '#s-pass2'].forEach(function (id) { $(id).value = ''; });
+    state.access = 'signedout'; render(); return;
+  }
   state.access = 'checking';
   render();
   // O perfil da pessoa fica em roles/{uid}.role ("viewer" ou "editor"), definido por quem gerencia o Firebase.
@@ -980,6 +1165,7 @@ function init() {
   wire();
   var hv = location.hash.slice(1);
   if (VIEWS.indexOf(hv) !== -1) state.view = hv;
+  if (hv === 'cadastro') state.authView = 'signup';
   if (!configured()) { state.access = 'setup'; render(); return; }
   try {
     var app = initializeApp(firebaseConfig);
