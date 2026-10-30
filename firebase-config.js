@@ -6,8 +6,7 @@ function getGoogleAuthClient() {
     // Converte a string da variável de ambiente de volta para objeto JSON
     const credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
 
-    const auth = new google.auth.GoogleAuth({
-      credentials: credentials,
+    const auth = new google.auth.GoogleAuth({ credentials: credentials,
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
 
