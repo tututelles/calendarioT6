@@ -427,16 +427,9 @@ code { font: 500 13px var(--font-mono); background: var(--surface-2); padding: 1
 
 <script type="module">
 import { firebaseConfig } from './firebase-config.js';
-        
-        // Importa o Firebase dos CDNs oficiais
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-        // Inicializa o Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        console.log("Firebase conectado com sucesso!");
+  
+  // Exemplo de teste para ver se leu certo:
+  console.log("Config carregada:", firebaseConfig.projectId);
 
 var $ = function (s) { return document.querySelector(s); };
 var MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
