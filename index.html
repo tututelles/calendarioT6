@@ -470,7 +470,7 @@ var today = fromDate(new Date());
 function relLabel(d) { var n = diffDays(today, d); return n === 0 ? 'hoje' : n === 1 ? 'amanhã' : 'em ' + n + ' dias'; }
 
 /* ---------- estado ---------- */
-var auth = null, db = null;
+
 var unsubRole = null, unsubEvents = null, slowTimer = null;
 var state = {
   events: [], loaded: false, sync: 'wait',
